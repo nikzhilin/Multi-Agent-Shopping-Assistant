@@ -1,135 +1,227 @@
-# AI Shopping Agents
+# Multi-Agent Shopping Assistant
 
-This project shows a simple shopping assistant built in a notebook. It grows in three steps:
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-orange?logo=jupyter&logoColor=white)](https://jupyter.org/)
+[![LangChain](https://img.shields.io/badge/LangChain-Core-1C3C3C)](https://python.langchain.com/)
+[![Yandex Cloud](https://img.shields.io/badge/Yandex_Cloud-Foundation_Models-red)](https://yandex.cloud/ru/services/foundation-models)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- a tool-calling agent
-- an agent with memory
-- a multi-agent system for recommendations
+**Multi-Agent Shopping Assistant** — учебный проект интеллектуального помощника для поиска и выбора товаров. Система демонстрирует три уровня агентной архитектуры: базовый агент с вызовом инструментов, агент с краткосрочной и долговременной памятью, а также мультиагентный пайплайн для формирования рекомендаций.
 
-The code is in [submission.ipynb](submission.ipynb).
+Ассистент работает с локальным каталогом товаров, учитывает категорию, бренд, бюджет и рейтинг, сохраняет предпочтения пользователя и при необходимости добавляет выбранный товар в корзину. Весь код, примеры запуска и проверки находятся в Jupyter Notebook.
 
-## What it can do
+---
 
-- search products by category, brand, price, and sorting
-- add products to a cart
-- remember chat context
-- save user preferences in a JSON profile
-- split a recommendation task between several agents
+## 🏗 Архитектура системы
 
-## Files
+```mermaid
+graph TD
+    U[Запрос пользователя] --> C{Выбранный workflow}
 
-- [submission.ipynb](submission.ipynb) - main notebook
-- [example.env](example.env) - env template
-- [pyproject.toml](pyproject.toml) - project dependencies
-- [LICENSE](LICENSE) - MIT license
+    C -->|Tool Calling| A[Shopping Agent]
+    A --> S[search_products]
+    A --> K[add_to_cart]
 
-## Parts of the project
+    C -->|Memory| M[Memory Agent]
+    M --> P[(JSON-профиль)]
+    M --> H[История диалога]
+    M --> S
+    M --> K
 
-### Tool-calling agent
+    C -->|Multi-Agent| O[Coordinator Agent]
+    O --> R[Retriever Agent]
+    R --> S
+    O --> PR[Pros Agent]
+    O --> CN[Cons Agent]
+    O --> RK[Ranker Agent]
+    RK --> K
 
-Uses these tools:
-
-- `search_products`
-- `add_to_cart`
-
-Main function:
-
-- `run_shopping_agent(...)`
-
-### Agent with memory
-
-Adds saved user preferences.
-
-Main functions:
-
-- `load_profile(...)`
-- `save_profile(...)`
-- `update_profile(...)`
-- `run_memory_agent(...)`
-
-### Multi-agent system
-
-Uses several small roles:
-
-- one agent finds products
-- one writes pros
-- one writes cons
-- one picks the best option
-
-## Stack
-
-- Python 3.11+
-- Jupyter Notebook
-- LangChain Core
-- `langchain-openai`
-- `python-dotenv`
-
-## How to run
-
-Install dependencies:
-
-```bash
-pip install -e .
+    S --> D[(Локальный каталог)]
 ```
 
-or
+### 📂 Структура репозитория
 
-```bash
-pip install langchain-openai langchain-core python-dotenv jupyter
+```text
+├── submission.ipynb   # Реализация агентов, инструментов и демонстрационных сценариев
+├── pyproject.toml     # Метаданные проекта и Python-зависимости
+├── example.env        # Шаблон переменных окружения Yandex Cloud
+├── AGENTS.md          # Руководство для участников проекта
+├── LICENSE            # Лицензия MIT
+└── README.md          # Документация проекта
 ```
 
-Create a local env file:
+Во время работы агент памяти создает локальные JSON-файлы с профилем пользователя. Они, как и каталог `data/`, исключены из Git.
+
+---
+
+## 🛠 Технологический стек
+
+- **Python 3.11+** — основная логика, модели состояния и оркестрация.
+- **Jupyter Notebook** — интерактивный запуск сценариев и проверок.
+- **LangChain Core** — типы сообщений и преобразование Python-функций в tool schemas.
+- **langchain-openai** — OpenAI-совместимый клиент `ChatOpenAI`.
+- **Yandex Cloud Foundation Models** — LLM через endpoint `https://ai.api.cloud.yandex.net/v1`.
+- **python-dotenv** — загрузка учетных данных из локального env-файла.
+
+---
+
+## 🚀 Быстрая установка и запуск
+
+### 1. Клонирование и виртуальное окружение
+
+```bash
+git clone https://github.com/nikzhilin/Multi-Agent-Shopping-Assistant.git
+cd Multi-Agent-Shopping-Assistant
+
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+```
+
+Для Windows PowerShell активация окружения выполняется командой:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Настройка Yandex Cloud
+
+Создайте локальный файл с переменными окружения:
 
 ```bash
 cp example.env .env
 ```
 
-Fill it with your values:
+Заполните значения:
 
 ```env
 YANDEX_CLOUD_FOLDER=your_folder_id
 YANDEX_CLOUD_API_KEY=your_api_key
 ```
 
-Start the notebook:
+Перед запуском экспортируйте их в текущую сессию:
+
+```bash
+set -a
+source .env
+set +a
+```
+
+> В первой ячейке notebook используется `load_dotenv("MY_KEY.env")`. Переменные из окружения имеют тот же эффект. Альтернативный вариант — заменить этот вызов на `load_dotenv()` для прямого чтения `.env`.
+
+### 3. Запуск notebook
 
 ```bash
 jupyter notebook submission.ipynb
 ```
 
-## Example prompts
+Выполняйте ячейки последовательно сверху вниз. Для работы LLM необходимы действующие учетные данные и доступ к Yandex Cloud API.
 
-- `Find a coffee machine under 180 dollars with good reviews`
-- `I like Logitech and my budget is 90 dollars. Remember that for later`
-- `Pick the best gaming mouse under 120 dollars and add it to cart`
+---
 
-## Example MAS response
+## 🧩 Сценарии работы
 
-Prompt:
+### 1. Tool-Calling Shopping Agent
+
+Функция `run_shopping_agent(...)` реализует итеративный цикл вызова LLM и инструментов:
+
+1. Модель анализирует запрос и формирует tool call.
+2. `search_products` фильтрует локальный каталог по тексту, категории, бренду и цене.
+3. `add_to_cart` изменяет состояние корзины.
+4. Результат инструмента возвращается модели через `ToolMessage`.
+5. Цикл продолжается до получения итогового текстового ответа.
+
+Пример:
 
 ```text
-Pick the best gaming mouse under 120 dollars and add it to cart
+Find a wireless mouse under 120 dollars and add the cheapest one to cart
 ```
 
-Example answer:
+### 2. Агент с памятью
+
+`run_memory_agent(...)` дополняет базовый workflow двумя видами памяти:
+
+- **краткосрочная** — история `HumanMessage`, `AIMessage` и `ToolMessage` между репликами;
+- **долговременная** — JSON-профиль с именем, брендом, бюджетом, цветом и категорией.
+
+Инструмент `update_profile` сохраняет новые предпочтения, а `load_profile` загружает их в следующей сессии.
 
 ```text
-I checked several gaming mice under 120 dollars.
-
-Best option: Logitech G502 X
-
-Why this one:
-- strong sensor and tracking
-- comfortable shape for long use
-- good feature set for the price
-
-Possible downside:
-- heavier than some lightweight esports models
-
-I added Logitech G502 X to your cart.
+My name is Anna, I prefer Sony and my budget is 200 dollars
 ```
 
-## Notes
+### 3. Мультиагентная рекомендация
 
-- local JSON data is ignored by Git
-- `example.env` stays in the repo, but real `.env` files do not
+`CoordinatorAgent` последовательно делегирует задачу специализированным компонентам:
+
+| Агент | Ответственность |
+|---|---|
+| `RetrieverAgent` | Находит до пяти релевантных товаров и извлекает бюджет |
+| `ProsAgent` | Формирует преимущества каждого кандидата по данным каталога |
+| `ConsAgent` | Описывает ограничения и недостатки кандидатов |
+| `RankerAgent` | Выбирает максимальный рейтинг; при равенстве — меньшую цену |
+| `CoordinatorAgent` | Управляет этапами, собирает ответ и обновляет корзину |
+
+Общий контекст передается через `AgentContext`, а последовательность делегирования сохраняется в `trace`.
+
+---
+
+## 🔧 Доступные инструменты
+
+### `search_products`
+
+Поддерживает параметры:
+
+| Параметр | Назначение |
+|---|---|
+| `query` | Поиск по названию, категории, бренду и тегам |
+| `category` | Точное ограничение по категории |
+| `brand` | Регистронезависимый фильтр бренда |
+| `max_price` | Максимальная допустимая цена |
+| `sort_by` | `price_asc` или `rating_desc` |
+
+### `add_to_cart`
+
+Добавляет товар по `product_id`, увеличивает количество уже добавленной позиции и возвращает статус операции.
+
+### `update_profile`
+
+Сохраняет пару `key` / `value` в JSON-профиль пользователя. Рекомендуемые ключи: `name`, `brand`, `max_price`, `color`, `category`.
+
+---
+
+## ✅ Проверка работы
+
+В нижней части `submission.ipynb` находятся исполняемые сценарии с `assert`:
+
+- фильтрация товаров по цене;
+- поиск и добавление самой дешевой позиции;
+- сохранение и повторное использование профиля;
+- перенос контекста между репликами;
+- полный цикл `search → pros → cons → rank → cart`;
+- соблюдение бюджета и разрешение равного рейтинга по цене.
+
+Notebook можно выполнить целиком без перезаписи исходного файла:
+
+```bash
+jupyter nbconvert --execute --to notebook submission.ipynb \
+  --output /tmp/submission.executed.ipynb
+```
+
+В проекте пока нет отдельного набора автоматических тестов. Результаты LLM могут различаться, поэтому детерминированные правила ранжирования проверяются отдельно от текстовой генерации.
+
+---
+
+## ⚠️ Ограничения
+
+- Каталог содержит демонстрационный набор товаров и не подключен к реальному магазину.
+- Корзина хранится только в памяти текущего процесса.
+- JSON-профиль не предназначен для хранения чувствительной информации.
+- Качество выбора инструментов и текста зависит от используемой LLM.
+- Для production-сценария необходимы валидация tool calls, обработка сетевых ошибок и внешнее хранилище состояния.
+
+---
+
+## 📜 Лицензия
+
+Проект распространяется по лицензии **MIT**. Подробности приведены в файле [LICENSE](LICENSE).
